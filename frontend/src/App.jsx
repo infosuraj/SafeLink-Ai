@@ -24,7 +24,7 @@ export default function App() {
         setResult(null);
 
         try {
-            const res = await fetch("http://localhost:8080/api/check-url", {
+            const res = await fetch("https://content-creativity-production.up.railway.app/api/check-url", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ url: u }),

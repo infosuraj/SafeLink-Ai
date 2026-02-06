@@ -1,6 +1,7 @@
 package com.example.backend.ml;
 
 import jakarta.annotation.PostConstruct;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import weka.classifiers.Classifier;
 import weka.core.*;
@@ -10,11 +11,11 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -25,7 +26,7 @@ public class WekaModelService {
 
     @PostConstruct
     public void start() throws Exception {
-        // This finds the absolute path to ensure we aren't lost in the server folders
+        // 1. Setup local directory for the .model file
         Path rootPath = Path.of("").toAbsolutePath();
         Path modelDir = rootPath.resolve("model");
 
@@ -34,26 +35,31 @@ public class WekaModelService {
         }
 
         File modelFile = modelDir.resolve("phishing-url.model").toFile();
-        Path headerPath = modelDir.resolve("header.json");
 
-        System.out.println("Looking for header at: " + headerPath.toAbsolutePath());
-
-        // Download model if missing
+        // 2. Download model if it's missing (using your Dropbox link)
         if (!modelFile.exists()) {
+            System.out.println("Model not found locally. Downloading...");
             downloadModel("https://www.dropbox.com/scl/fi/mf3xh0iw31t31ejbwbbxv/phishing-url.model?rlkey=dse4c0lk21y1xxgpbi0pffc7p&st=aie0xcom&dl=1", modelFile);
         }
 
-        // Logic to handle missing header without crashing immediately
-        if (Files.exists(headerPath)) {
-            this.header = loadHeaderFromJson(headerPath);
-        } else {
-            // Log the error clearly in Railway logs
-            System.err.println("CRITICAL ERROR: header.json NOT FOUND at " + headerPath.toAbsolutePath());
-            throw new IllegalStateException("header.json missing at " + headerPath.toAbsolutePath());
+        // 3. LOAD HEADER: Read from Classpath (src/main/resources)
+        ClassPathResource resource = new ClassPathResource("header.json");
+        if (!resource.exists()) {
+            throw new IllegalStateException("CRITICAL ERROR: header.json missing from src/main/resources!");
         }
 
+        // Use the input stream to parse the header
+        try (InputStream inputStream = resource.getInputStream()) {
+            this.header = loadHeaderFromStream(inputStream);
+            System.out.println("Header loaded successfully from classpath.");
+        }
+
+        // 4. LOAD MODEL: Read the serialized Weka model
         if (modelFile.exists()) {
             this.model = (Classifier) SerializationHelper.read(modelFile.getPath());
+            System.out.println("Weka model loaded successfully.");
+        } else {
+            throw new IllegalStateException("Failed to load model file after download attempt.");
         }
     }
 
@@ -64,19 +70,20 @@ public class WekaModelService {
                 Files.copy(in, destination.toPath(), StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (IOException e) {
-            System.err.println(e.getMessage());
+            System.err.println("Download failed: " + e.getMessage());
         }
     }
 
     public PredictionResult predict(String url) throws Exception {
-        if (model == null) {
-            throw new IllegalStateException("Model missing");
+        if (model == null || header == null) {
+            throw new IllegalStateException("Model or Header is not initialized.");
         }
 
         double[] feats = UrlFeatureExtractor.extract(url);
 
+        // Ensure features match expected header count (minus class attribute)
         if (feats.length != header.numAttributes() - 1) {
-            throw new IllegalStateException("Feature mismatch");
+            throw new IllegalStateException("Feature mismatch! Expected: " + (header.numAttributes() - 1) + " but got: " + feats.length);
         }
 
         DenseInstance inst = new DenseInstance(header.numAttributes());
@@ -97,11 +104,13 @@ public class WekaModelService {
         );
     }
 
-    private Instances loadHeaderFromJson(Path headerPath) throws Exception {
-        String json = Files.readString(headerPath);
+    // Updated to handle InputStream from Classpath
+    private Instances loadHeaderFromStream(InputStream is) throws Exception {
+        String json = new String(is.readAllBytes(), StandardCharsets.UTF_8);
         List<String> featureNames = new ArrayList<>();
         List<String> classValues = new ArrayList<>();
 
+        // Manual JSON parsing logic (as per your original code)
         String fn = json.substring(json.indexOf("\"features\""));
         String fnArr = fn.substring(fn.indexOf("[") + 1, fn.indexOf("]"));
         for (String s : fnArr.split(",")) {
