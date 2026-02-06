@@ -24,7 +24,6 @@ public class WekaModelService {
     private Instances header;
 
     @PostConstruct
-    @PostConstruct
     public void start() throws Exception {
         // This finds the absolute path to ensure we aren't lost in the server folders
         Path rootPath = Path.of("").toAbsolutePath();
