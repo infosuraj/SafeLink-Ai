@@ -1,0 +1,18 @@
+{
+  "features": [
+    "Using_IP_Address",
+    "URL_Length",
+    "Has_At_Symbol",
+    "Has_Double_Slash",
+    "Num_Dots",
+    "Prefix_Suffix_Separation",
+    "HTTPS_in_Domain",
+    "Num_Subdomains",
+    "Has_Punycode",
+    "Digit_Ratio",
+    "URL_Entropy"
+  ],
+  "classValues": ["legitimate", "phishing"],
+  "algorithm": "RandomForest",
+  "note": "URL-only lexical + structural features; loader auto-detects delimiter and skips corrupted rows"
+}
