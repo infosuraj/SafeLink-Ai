@@ -1,4 +1,6 @@
 # 🛡️ SafeLink AI — Phishing URL Detector
+[![Live Demo](https://img.shields.io/badge/Demo-Live%20Link-brightgreen)](https://projects.infosuraj.com/safelink-ai/)
+
 ### **A Machine Learning-Based Web Security System for Detecting Phishing URLs**
 
 ---

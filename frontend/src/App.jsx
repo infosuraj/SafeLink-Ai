@@ -1,4 +1,5 @@
 import { useState } from "react";
+import logo from "./assets/logo.png";
 
 export default function App() {
     const [url, setUrl] = useState("");
@@ -58,7 +59,7 @@ export default function App() {
                 <div style={styles.card}>
                     <header style={styles.header}>
                         <div style={{ display: "flex", alignItems: "center" }}>
-                            <img src="/logo.png" alt="SafeLink AI Logo" style={{ width: "30px" }} />
+                            <img src={logo} alt="SafeLink AI Logo" style={{ width: "30px" }} />
                             <div style={{ marginLeft: "12px" }} />
                             <h1 style={styles.title}>SafeLink AI</h1>
                         </div>
