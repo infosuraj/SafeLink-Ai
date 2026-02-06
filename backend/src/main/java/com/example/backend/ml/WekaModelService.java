@@ -24,23 +24,33 @@ public class WekaModelService {
     private Instances header;
 
     @PostConstruct
+    @PostConstruct
     public void start() throws Exception {
-        Path modelPath = Path.of("model", "phishing-url.model");
-        File modelFile = modelPath.toFile();
-        Path headerPath = Path.of("model", "header.json");
+        // This finds the absolute path to ensure we aren't lost in the server folders
+        Path rootPath = Path.of("").toAbsolutePath();
+        Path modelDir = rootPath.resolve("model");
 
-        if (!Files.exists(modelPath.getParent())) {
-            Files.createDirectories(modelPath.getParent());
+        if (!Files.exists(modelDir)) {
+            Files.createDirectories(modelDir);
         }
 
+        File modelFile = modelDir.resolve("phishing-url.model").toFile();
+        Path headerPath = modelDir.resolve("header.json");
+
+        System.out.println("Looking for header at: " + headerPath.toAbsolutePath());
+
+        // Download model if missing
         if (!modelFile.exists()) {
             downloadModel("https://www.dropbox.com/scl/fi/mf3xh0iw31t31ejbwbbxv/phishing-url.model?rlkey=dse4c0lk21y1xxgpbi0pffc7p&st=aie0xcom&dl=1", modelFile);
         }
 
+        // Logic to handle missing header without crashing immediately
         if (Files.exists(headerPath)) {
             this.header = loadHeaderFromJson(headerPath);
         } else {
-            throw new IllegalStateException("header.json missing");
+            // Log the error clearly in Railway logs
+            System.err.println("CRITICAL ERROR: header.json NOT FOUND at " + headerPath.toAbsolutePath());
+            throw new IllegalStateException("header.json missing at " + headerPath.toAbsolutePath());
         }
 
         if (modelFile.exists()) {
